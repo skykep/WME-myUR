@@ -2,7 +2,7 @@
 // @name         WME myUR
 // @namespace    https://greasyfork.org/en/users/668704-phuz
 // @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
-// @version      1.02
+// @version      1.03
 // @description  Highlight URs based on days since last response
 // @author       phuz
 // @include      /^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor\/?.*$/
@@ -35,13 +35,17 @@ const sleep = (time) => {
         if (W && W.loginManager && W.map && W.loginManager.user && W.model
             && W.model.states && W.model.states.getObjectArray().length && WazeWrap && WazeWrap.Ready) {
             setTimeout(function () {
-                getBounds();
-                getURs();
+                if (W.map.getZoom() >= 12) {
+                    getBounds();
+                    getURs();
+                }
                 W.map.events.register("moveend", W.map, function () {
                     myURmarkers.destroy();
                     setTimeout(function () {
-                        getBounds();
-                        getURs();
+                        if (W.map.getZoom() >= 12) {
+                            getBounds();
+                            getURs();
+                        }
                     }, 100);
                 });
                 console.log("WME myUR Loaded!");
@@ -64,34 +68,36 @@ const sleep = (time) => {
         //Scan the list of URs that were populated in WME
         for (let i = 0; i < URarray.length; i++) {
             let URid = document.getElementsByClassName("map-problem user-generated")[i].getAttribute("data-id");
-            //Continue if the UR is in the bounds of the WME window
-            if ((W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.x > mapBounds.left) && (W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.x < mapBounds.right)) {
-                if ((W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.y > mapBounds.bottom) && (W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.y < mapBounds.top)) {
-                    //Continue if the UR has comments
-                    if (W.model.mapUpdateRequests.getObjectById(URid).attributes.hasComments) {
-                        let updatedOn = W.model.mapUpdateRequests.getObjectById(URid).attributes.updatedOn;
-                        let updatedDaysAgo = moment(new Date(Date.now()), "DD.MM.YYYY").diff(moment(new Date(updatedOn), "DD.MM.YYYY"), 'days');
-                        //Continue if the last comment was 4 or more days ago
-                        if (updatedDaysAgo >= 4) {
-                            setTimeout(async function () {
-                                let URdata = await W.controller.descartesClient.getUpdateRequestSessionsByIds(URid);
-                                if (URdata.users.objects.length > 0) {
-                                    for (let j = 0; j < URdata.users.objects.length; j++) {
-                                        if (URdata.users.objects[j].userName == W.loginManager.user.userName) {
-                                            let commentLength = URdata.updateRequestSessions.objects[0].comments.length;
-                                            let lastCommentTime = URdata.updateRequestSessions.objects[0].comments[commentLength - 1].createdOn;
-                                            lastCommentTime = moment(new Date(lastCommentTime), "DD.MM.YYYY");
-                                            let timeNow = moment(new Date(Date.now()), "DD.MM.YYYY");
-                                            let daysSinceLastMessage = timeNow.diff(lastCommentTime, 'days');
-                                            if (daysSinceLastMessage >= 5) {
-                                                drawMarkers(URdata.updateRequestSessions.objects[0].id, "red");
-                                            } else if (daysSinceLastMessage >= 4) {
-                                                drawMarkers(URdata.updateRequestSessions.objects[0].id, "orange");
+            if (W.model.mapUpdateRequests.getObjectById(URid).editable) {
+                //Continue if the UR is in the bounds of the WME window
+                if ((W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.x > mapBounds.left) && (W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.x < mapBounds.right)) {
+                    if ((W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.y > mapBounds.bottom) && (W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.y < mapBounds.top)) {
+                        //Continue if the UR has comments
+                        if (W.model.mapUpdateRequests.getObjectById(URid).attributes.hasComments) {
+                            let updatedOn = W.model.mapUpdateRequests.getObjectById(URid).attributes.updatedOn;
+                            let updatedDaysAgo = moment(new Date(Date.now()), "DD.MM.YYYY").diff(moment(new Date(updatedOn), "DD.MM.YYYY"), 'days');
+                            //Continue if the last comment was 4 or more days ago
+                            if (updatedDaysAgo >= 4) {
+                                setTimeout(async function () {
+                                    let URdata = await W.controller.descartesClient.getUpdateRequestSessionsByIds(URid);
+                                    if (URdata.users.objects.length > 0) {
+                                        for (let j = 0; j < URdata.users.objects.length; j++) {
+                                            if (URdata.users.objects[j].userName == W.loginManager.user.userName) {
+                                                let commentLength = URdata.updateRequestSessions.objects[0].comments.length;
+                                                let lastCommentTime = URdata.updateRequestSessions.objects[0].comments[commentLength - 1].createdOn;
+                                                lastCommentTime = moment(new Date(lastCommentTime), "DD.MM.YYYY");
+                                                let timeNow = moment(new Date(Date.now()), "DD.MM.YYYY");
+                                                let daysSinceLastMessage = timeNow.diff(lastCommentTime, 'days');
+                                                if (daysSinceLastMessage >= 5) {
+                                                    drawMarkers(URdata.updateRequestSessions.objects[0].id, "red");
+                                                } else if (daysSinceLastMessage >= 4) {
+                                                    drawMarkers(URdata.updateRequestSessions.objects[0].id, "orange");
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            }, 20);
+                                }, 20);
+                            }
                         }
                     }
                 }
