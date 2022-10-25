@@ -44,7 +44,7 @@ const sleep = (time) => {
                         getURs();
                     }, 100);
                 });
-
+                console.log("WME myUR Loaded!");
             }, 500);
         } else if (tries < 1000) {
             setTimeout(function () { bootstrap(++tries); }, 200);
@@ -58,6 +58,7 @@ const sleep = (time) => {
     async function getURs() {
         myURmarkers = new OpenLayers.Layer.Markers('myURmarkers');
         W.map.addLayer(myURmarkers);
+        W.map.getOLMap().setLayerIndex(myURmarkers, 2);
         let URarray = document.getElementsByClassName("map-problem user-generated");
 
         //Scan the list of URs that were populated in WME
@@ -130,7 +131,6 @@ const sleep = (time) => {
         newMarker.location = lonLat;
         myURmarkers.setOpacity(.75);
         myURmarkers.addMarker(newMarker);
-        W.map.getOLMap().setLayerIndex(myURmarkers, 2);
     }
 
     bootstrap();
