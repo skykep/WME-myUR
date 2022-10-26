@@ -2,7 +2,7 @@
 // @name         WME myUR
 // @namespace    https://greasyfork.org/en/users/668704-phuz
 // @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
-// @version      1.03
+// @version      1.04
 // @description  Highlight URs based on days since last response
 // @author       phuz
 // @include      /^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor\/?.*$/
@@ -34,19 +34,22 @@ const sleep = (time) => {
     function bootstrap(tries = 1) {
         if (W && W.loginManager && W.map && W.loginManager.user && W.model
             && W.model.states && W.model.states.getObjectArray().length && WazeWrap && WazeWrap.Ready) {
+            myURmarkers = new OpenLayers.Layer.Markers('myURmarkers');
+            W.map.addLayer(myURmarkers);
+            W.map.getOLMap().setLayerIndex(myURmarkers, 2);
             setTimeout(function () {
                 if (W.map.getZoom() >= 12) {
                     getBounds();
                     getURs();
                 }
                 W.map.events.register("moveend", W.map, function () {
-                    myURmarkers.destroy();
+                    myURmarkers.clearMarkers();
                     setTimeout(function () {
                         if (W.map.getZoom() >= 12) {
                             getBounds();
                             getURs();
                         }
-                    }, 100);
+                    }, 250);
                 });
                 console.log("WME myUR Loaded!");
             }, 500);
@@ -60,14 +63,12 @@ const sleep = (time) => {
     }
 
     async function getURs() {
-        myURmarkers = new OpenLayers.Layer.Markers('myURmarkers');
-        W.map.addLayer(myURmarkers);
-        W.map.getOLMap().setLayerIndex(myURmarkers, 2);
         let URarray = document.getElementsByClassName("map-problem user-generated");
 
         //Scan the list of URs that were populated in WME
         for (let i = 0; i < URarray.length; i++) {
             let URid = document.getElementsByClassName("map-problem user-generated")[i].getAttribute("data-id");
+            //Only highlight URs that are still open
             if (W.model.mapUpdateRequests.getObjectById(URid).editable) {
                 //Continue if the UR is in the bounds of the WME window
                 if ((W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.x > mapBounds.left) && (W.model.mapUpdateRequests.getObjectById(URid).attributes.geometry.x < mapBounds.right)) {
@@ -88,6 +89,7 @@ const sleep = (time) => {
                                                 lastCommentTime = moment(new Date(lastCommentTime), "DD.MM.YYYY");
                                                 let timeNow = moment(new Date(Date.now()), "DD.MM.YYYY");
                                                 let daysSinceLastMessage = timeNow.diff(lastCommentTime, 'days');
+                                                //console.log(URid + ":" + daysSinceLastMessage);
                                                 if (daysSinceLastMessage >= 5) {
                                                     drawMarkers(URdata.updateRequestSessions.objects[0].id, "red");
                                                 } else if (daysSinceLastMessage >= 4) {
@@ -133,13 +135,11 @@ const sleep = (time) => {
         var lonLat = new OpenLayers.LonLat(lon, lat).transform('EPSG:3857', 'EPSG:4326');
         lonLat = new OpenLayers.LonLat(lonLat.lon, lonLat.lat).transform(epsg4326, projectTo);
         var newMarker = new OpenLayers.Marker(lonLat, icon);
-
         newMarker.location = lonLat;
         myURmarkers.setOpacity(.75);
         myURmarkers.addMarker(newMarker);
     }
 
     bootstrap();
-    loadObserver();
 
 })();
