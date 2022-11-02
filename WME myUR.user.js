@@ -2,7 +2,7 @@
 // @name         WME myUR
 // @namespace    https://greasyfork.org/en/users/668704-phuz
 // @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
-// @version      1.04
+// @version      1.05
 // @description  Highlight URs based on days since last response
 // @author       phuz
 // @include      /^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor\/?.*$/
@@ -76,18 +76,20 @@ const sleep = (time) => {
                         //Continue if the UR has comments
                         if (W.model.mapUpdateRequests.getObjectById(URid).attributes.hasComments) {
                             let updatedOn = W.model.mapUpdateRequests.getObjectById(URid).attributes.updatedOn;
-                            let updatedDaysAgo = moment(new Date(Date.now()), "DD.MM.YYYY").diff(moment(new Date(updatedOn), "DD.MM.YYYY"), 'days');
+                            let updatedDaysAgo = moment(new Date(Date.now()), "DD.MM.YYYY").startOf('day').diff(moment(new Date(updatedOn), "DD.MM.YYYY").startOf('day'), 'days');
+                            //console.log(URid + ":" + updatedDaysAgo);
                             //Continue if the last comment was 4 or more days ago
                             if (updatedDaysAgo >= 4) {
                                 setTimeout(async function () {
                                     let URdata = await W.controller.descartesClient.getUpdateRequestSessionsByIds(URid);
                                     if (URdata.users.objects.length > 0) {
-                                        for (let j = 0; j < URdata.users.objects.length; j++) {
-                                            if (URdata.users.objects[j].userName == W.loginManager.user.userName) {
+                                        for (let j = URdata.users.objects.length - 1; j >= 0; j--) {
+                                            //Continue if my username matches a UR response
+                                            if ((URdata.users.objects[j].userName == W.loginManager.user.userName) || true) {
                                                 let commentLength = URdata.updateRequestSessions.objects[0].comments.length;
                                                 let lastCommentTime = URdata.updateRequestSessions.objects[0].comments[commentLength - 1].createdOn;
-                                                lastCommentTime = moment(new Date(lastCommentTime), "DD.MM.YYYY");
-                                                let timeNow = moment(new Date(Date.now()), "DD.MM.YYYY");
+                                                lastCommentTime = moment(new Date(lastCommentTime), "DD.MM.YYYY").startOf('day');
+                                                let timeNow = moment(new Date(Date.now()), "DD.MM.YYYY").startOf('day');
                                                 let daysSinceLastMessage = timeNow.diff(lastCommentTime, 'days');
                                                 //console.log(URid + ":" + daysSinceLastMessage);
                                                 if (daysSinceLastMessage >= 5) {
@@ -95,6 +97,7 @@ const sleep = (time) => {
                                                 } else if (daysSinceLastMessage >= 4) {
                                                     drawMarkers(URdata.updateRequestSessions.objects[0].id, "orange");
                                                 }
+                                                break;
                                             }
                                         }
                                     }
