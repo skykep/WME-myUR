@@ -2,7 +2,7 @@
 // @name         WME myUR
 // @namespace    https://greasyfork.org/en/users/668704-phuz
 // @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
-// @version      1.05
+// @version      1.06
 // @description  Highlight URs based on days since last response
 // @author       phuz
 // @include      /^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor\/?.*$/
@@ -85,7 +85,7 @@ const sleep = (time) => {
                                     if (URdata.users.objects.length > 0) {
                                         for (let j = URdata.users.objects.length - 1; j >= 0; j--) {
                                             //Continue if my username matches a UR response
-                                            if ((URdata.users.objects[j].userName == W.loginManager.user.userName) || true) {
+                                            if ((URdata.users.objects[j].userName == W.loginManager.user.userName)) {
                                                 let commentLength = URdata.updateRequestSessions.objects[0].comments.length;
                                                 let lastCommentTime = URdata.updateRequestSessions.objects[0].comments[commentLength - 1].createdOn;
                                                 lastCommentTime = moment(new Date(lastCommentTime), "DD.MM.YYYY").startOf('day');
